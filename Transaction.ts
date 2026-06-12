@@ -9,7 +9,8 @@ const transactionSchema = new mongoose.Schema({
     required: true 
   },
   date: { type: String, default: () => new Date().toISOString() },
-  type: { type: String, enum: ['ingreso', 'gasto'], required: true }
+  type: { type: String, enum: ['ingreso', 'gasto'], required: true },
+  isPending: { type: Boolean, default: false }
 }, {
   timestamps: true,
   toJSON: { 

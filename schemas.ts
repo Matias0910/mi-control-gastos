@@ -8,7 +8,8 @@ export const TransactionSchema = z.object({
   description: z.string().min(3, { message: "La descripción es muy corta" }),
   category: CategoryEnum,
   date: z.string().default(() => new Date().toISOString()),
-  type: z.enum(['ingreso', 'gasto'])
+  type: z.enum(['ingreso', 'gasto']),
+  isPending: z.boolean().optional().default(false)
 });
 
 export type Transaction = z.infer<typeof TransactionSchema>;

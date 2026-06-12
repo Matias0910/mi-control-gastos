@@ -43,6 +43,20 @@ app.post('/api/transactions', async (req, res) => {
   }
 });
 
+// Marcar como pagado (Saldar deuda)
+app.patch('/api/transactions/:id/pay', async (req, res) => {
+  try {
+    const updated = await TransactionModel.findByIdAndUpdate(
+      req.params.id, 
+      { isPending: false }, 
+      { new: true }
+    );
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Error al actualizar" });
+  }
+});
+
 // Eliminar una transacción
 app.delete('/api/transactions/:id', async (req, res) => {
   try {

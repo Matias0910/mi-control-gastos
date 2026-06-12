@@ -17,6 +17,7 @@ export default function App() {
   const [amount, setAmount] = useState<number | ''>('');
   const [type, setType] = useState<'ingreso' | 'gasto'>('gasto');
   const [cat, setCat] = useState<Category>('Otros');
+  const [isPending, setIsPending] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7)); 
   const [status, setStatus] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -48,7 +49,12 @@ export default function App() {
       return;
     }
 
-    const newTx = { description: desc, amount, category: cat, type, date: new Date(date).toISOString() };
+    // Combinamos la fecha seleccionada con la hora actual exacta
+    const now = new Date();
+    const currentTime = now.toISOString().split('T')[1]; // Obtiene "HH:mm:ss.sssZ"
+    const dateToSave = `${date}T${currentTime}`;
+    
+    const newTx = { description: desc, amount, category: cat, type, date: dateToSave, isPending: type === 'gasto' ? isPending : false };
     
     try {
       const res = await fetch(`${API_BASE_URL}/api/transactions`, {
@@ -62,12 +68,28 @@ export default function App() {
         setTransactions([saved, ...transactions]); 
         setDesc(''); 
         setAmount('');
+        setIsPending(false);
         setStatus({ msg: "¡Guardado con éxito!", type: 'success' });
       } else {
         throw new Error();
       }
     } catch (err) {
       setStatus({ msg: "Error al conectar con el servidor", type: 'error' });
+    }
+  };
+
+  const handleSettle = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/transactions/${id}/pay`, { method: 'PATCH' });
+      if (res.ok) {
+        const updated = await res.json();
+        setTransactions(transactions.map(t => (t._id || (t as any).id) === id ? updated : t));
+        setStatus({ msg: "¡Deuda saldada!", type: 'success' });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      setStatus({ msg: "Error al saldar la deuda", type: 'error' });
     }
   };
 
@@ -91,23 +113,28 @@ export default function App() {
     [transactions, monthFilter]
   );
 
-  const { totalIngresos, totalGastos, totalBalance } = useMemo(() => {
+  const { totalIngresos, totalGastos, totalBalance, totalDeuda } = useMemo(() => {
     const ingresos = filteredTransactions
       .filter(t => t.type === 'ingreso')
       .reduce((acc, t) => acc + t.amount, 0);
-    const gastos = filteredTransactions
-      .filter(t => t.type === 'gasto')
+    const gastosPagados = filteredTransactions
+      .filter(t => t.type === 'gasto' && !t.isPending)
       .reduce((acc, t) => acc + t.amount, 0);
+    const deuda = filteredTransactions
+      .filter(t => t.type === 'gasto' && t.isPending)
+      .reduce((acc, t) => acc + t.amount, 0);
+      
     return {
       totalIngresos: ingresos,
-      totalGastos: gastos,
-      totalBalance: ingresos - gastos
+      totalGastos: gastosPagados,
+      totalBalance: ingresos - gastosPagados, // El saldo real es ingresos menos lo que ya pagamos
+      totalDeuda: deuda
     };
   }, [filteredTransactions]);
 
   const expensesByCategory = useMemo(() => 
     filteredTransactions
-      .filter(t => t.type === 'gasto')
+      .filter(t => t.type === 'gasto' && !t.isPending)
       .reduce((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount;
         return acc;
@@ -151,8 +178,13 @@ export default function App() {
           <small>Gastos</small>
           <div style={{ color: 'red', fontWeight: 'bold' }}>-${totalGastos.toFixed(2)}</div>
         </div>
-        <div style={{ gridColumn: 'span 2', background: '#e2e3e5', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-          <h2 style={{ margin: 0 }}>Saldo: <span style={{ color: totalBalance >= 0 ? 'green' : 'red' }}>${totalBalance.toFixed(2)}</span></h2>
+        <div style={{ background: '#fff3cd', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+          <small>A Pagar (Fiado)</small>
+          <div style={{ color: '#856404', fontWeight: 'bold' }}>${totalDeuda.toFixed(2)}</div>
+        </div>
+        <div style={{ background: '#e2e3e5', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+          <small>Saldo Real</small>
+          <div style={{ color: totalBalance >= 0 ? 'green' : 'red', fontWeight: 'bold' }}>${totalBalance.toFixed(2)}</div>
         </div>
       </div>
       
@@ -187,6 +219,12 @@ export default function App() {
           <option value="Kiosco">Kiosco</option>
           <option value="Otros">Otros</option>
         </select>
+        {type === 'gasto' && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>
+            <input type="checkbox" checked={isPending} onChange={e => setIsPending(e.target.checked)} />
+            ¿Saca fiado? (Pagar después)
+          </label>
+        )}
         <button type="submit" style={{ padding: '10px', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
           Agregar {type === 'gasto' ? 'Gasto' : 'Ingreso'}
         </button>
@@ -238,15 +276,25 @@ export default function App() {
         {filteredTransactions.map((t) => (
           <li key={t._id || (t as any).id} style={{ backgroundColor: '#f9f9f9', marginBottom: '8px', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <div>
-              <div style={{ fontWeight: 'bold' }}>{t.description}</div>
+              <div style={{ fontWeight: 'bold' }}>
+                {t.description} 
+                {t.isPending && <span style={{ marginLeft: '8px', fontSize: '10px', background: '#fff3cd', color: '#856404', padding: '2px 6px', borderRadius: '10px', border: '1px solid #ffeeba' }}>PENDIENTE</span>}
+              </div>
               <div style={{ fontSize: '12px', color: '#666' }}>
-                {t.category} • {new Date(t.date).toLocaleDateString()}
+                {t.category} • {new Date(t.date).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}hs
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ color: t.type === 'gasto' ? 'red' : 'green', fontWeight: 'bold' }}>
                 {t.type === 'gasto' ? '-' : '+'}${t.amount}
               </span>
+              {t.isPending && (
+                <button 
+                  onClick={() => handleSettle((t._id || (t as any).id)!)} 
+                  style={{ background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', padding: '5px' }}
+                  title="Marcar como pagado"
+                >✓</button>
+              )}
               <button onClick={() => handleDelete((t._id || (t as any).id)!)} style={{ background: '#ff4d4d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', padding: '5px' }}>X</button>
             </div>
           </li>
