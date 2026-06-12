@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:server && vite build",
-    "build:server": "tsc server.ts --outDir dist-server --module esnext --target esnext --moduleResolution node --allowSyntheticDefaultImports --skipLibCheck --ignoreConfig",
+    "build:server": "tsc server.ts --outDir dist-server --module esnext --target esnext --moduleResolution node --allowSyntheticDefaultImports --skipLibCheck --ignoreConfig --ignoreDeprecations 6.0",
     "start": "node dist-server/server.js",
     "lint": "eslint .",
     "preview": "vite preview"
