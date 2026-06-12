@@ -37,6 +37,16 @@ app.post('/api/transactions', async (req, res) => {
   }
 });
 
+// Eliminar una transacción
+app.delete('/api/transactions/:id', async (req, res) => {
+  try {
+    await TransactionModel.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: "Eliminado correctamente" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al eliminar" });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor de Gastos corriendo en http://localhost:${PORT}`);
