@@ -1,81 +1,151 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Transaction, Category } from '../schemas';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
-// Registrar componentes de Chart.js
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-// En producción (Render), usaremos la URL de tu backend desplegado
 const API_BASE_URL = import.meta.env.DEV 
   ? 'http://localhost:3001' 
-  : ''; // En producción dejamos vacío para usar la misma URL de la página
+  : ''; 
+
+type TransactionWithId = Transaction & { _id?: string };
 
 export default function App() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<TransactionWithId[]>([]);
   const [desc, setDesc] = useState('');
-  const [amount, setAmount] = useState(0);
+  const [amount, setAmount] = useState<number | ''>('');
   const [type, setType] = useState<'ingreso' | 'gasto'>('gasto');
   const [cat, setCat] = useState<Category>('Otros');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [monthFilter, setMonthFilter] = useState(new Date().toISOString().slice(0, 7)); 
+  const [status, setStatus] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
-  // Cargar datos al iniciar
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/transactions`)
       .then(res => res.json())
-      .then(setTransactions);
+      .then(setTransactions)
+      .catch(() => setStatus({ msg: "Error al conectar con el servidor", type: 'error' }));
   }, []);
+
+  useEffect(() => {
+    if (status) {
+      const timer = setTimeout(() => setStatus(null), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newTx = { description: desc, amount, category: cat, type };
-    
-    const res = await fetch(`${API_BASE_URL}/api/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newTx)
-    });
+    if (!desc || !amount || amount <= 0) {
+      setStatus({ msg: "Completa los campos correctamente", type: 'error' });
+      return;
+    }
 
-    if (res.ok) {
-      const saved = await res.json();
-      setTransactions([...transactions, saved]);
-      setDesc(''); setAmount(0);
+    const newTx = { description: desc, amount, category: cat, type, date: new Date(date).toISOString() };
+    
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTx)
+      });
+
+      if (res.ok) {
+        const saved = await res.json();
+        setTransactions([saved, ...transactions]); 
+        setDesc(''); 
+        setAmount('');
+        setStatus({ msg: "¡Guardado con éxito!", type: 'success' });
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      setStatus({ msg: "Error al conectar con el servidor", type: 'error' });
     }
   };
 
   const handleDelete = async (id: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/transactions/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setTransactions(transactions.filter(t => t.id !== id));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/transactions/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setTransactions(transactions.filter(t => (t._id || t.id) !== id));
+        setStatus({ msg: "Transacción eliminada con éxito.", type: 'success' });
+      } else {
+        const errorData = await res.json();
+        setStatus({ msg: `Error al eliminar: ${errorData.error || res.statusText}`, type: 'error' });
+      }
+    } catch (err) {
+      setStatus({ msg: "Error de conexión al intentar eliminar la transacción.", type: 'error' });
     }
   };
 
-  const totalBalance = transactions.reduce((acc, t) => t.type === 'ingreso' ? acc + t.amount : acc - t.amount, 0);
+  const filteredTransactions = useMemo(() => 
+    transactions.filter(t => t.date.startsWith(monthFilter)),
+    [transactions, monthFilter]
+  );
 
-  // Preparar datos para el gráfico (solo gastos)
-  const expensesByCategory = transactions
-    .filter(t => t.type === 'gasto')
-    .reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  const { totalIngresos, totalGastos, totalBalance } = useMemo(() => {
+    const ingresos = filteredTransactions
+      .filter(t => t.type === 'ingreso')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const gastos = filteredTransactions
+      .filter(t => t.type === 'gasto')
+      .reduce((acc, t) => acc + t.amount, 0);
+    return {
+      totalIngresos: ingresos,
+      totalGastos: gastos,
+      totalBalance: ingresos - gastos
+    };
+  }, [filteredTransactions]);
 
-  const chartData = {
+  const expensesByCategory = useMemo(() => 
+    filteredTransactions
+      .filter(t => t.type === 'gasto')
+      .reduce((acc, t) => {
+        acc[t.category] = (acc[t.category] || 0) + t.amount;
+        return acc;
+      }, {} as Record<string, number>),
+    [filteredTransactions]
+  );
+
+  const categoryColors: Record<string, string> = {
+    'Comida': '#FF6384',
+    'Transporte': '#36A2EB',
+    'Vivienda': '#FFCE56',
+    'Entretenimiento': '#4BC0C0',
+    'Salud': '#9966FF',
+    'Kiosco': '#FF9F40',
+    'Otros': '#C9CBCF'
+  };
+
+  const chartData = useMemo(() => ({
     labels: Object.keys(expensesByCategory),
     datasets: [
       {
         data: Object.values(expensesByCategory),
-        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+        backgroundColor: Object.keys(expensesByCategory).map(c => categoryColors[c as keyof typeof categoryColors] || '#000'),
         borderWidth: 1,
       },
     ],
-  };
+  }), [expensesByCategory]);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '500px', margin: 'auto' }}>
       <h1>💰 Mi Control de Gastos</h1>
       
-      <div style={{ background: '#f4f4f4', padding: '15px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
-        <h2 style={{ margin: 0 }}>Saldo: <span style={{ color: totalBalance >= 0 ? 'green' : 'red' }}>${totalBalance.toFixed(2)}</span></h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+        <div style={{ background: '#d4edda', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+          <small>Ingresos</small>
+          <div style={{ color: 'green', fontWeight: 'bold' }}>+${totalIngresos.toFixed(2)}</div>
+        </div>
+        <div style={{ background: '#f8d7da', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+          <small>Gastos</small>
+          <div style={{ color: 'red', fontWeight: 'bold' }}>-${totalGastos.toFixed(2)}</div>
+        </div>
+        <div style={{ gridColumn: 'span 2', background: '#e2e3e5', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+          <h2 style={{ margin: 0 }}>Saldo: <span style={{ color: totalBalance >= 0 ? 'green' : 'red' }}>${totalBalance.toFixed(2)}</span></h2>
+        </div>
       </div>
       
       <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -83,8 +153,21 @@ export default function App() {
           <option value="gasto">Gasto</option>
           <option value="ingreso">Ingreso</option>
         </select>
+        
+        <input 
+          type="date" 
+          value={date} 
+          onChange={e => setDate(e.target.value)} 
+          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+        />
+
         <input placeholder="Descripción" value={desc} onChange={e => setDesc(e.target.value)} />
-        <input type="number" placeholder="Monto" value={amount} onChange={e => setAmount(Number(e.target.value))} />
+        <input 
+          type="number" 
+          placeholder="Monto" 
+          value={amount} 
+          onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} 
+        />
         <select value={cat} onChange={e => setCat(e.target.value as Category)}>
           <option value="Comida">Comida</option>
           <option value="Transporte">Transporte</option>
@@ -99,27 +182,62 @@ export default function App() {
         </button>
       </form>
 
-      <hr />
-
-      {transactions.filter(t => t.type === 'gasto').length > 0 && (
-        <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ textAlign: 'center' }}>Gastos por Categoría</h3>
-          <Pie data={chartData} />
+      {status && (
+        <div style={{ marginTop: '10px', padding: '10px', borderRadius: '4px', textAlign: 'center', backgroundColor: status.type === 'success' ? '#d4edda' : '#f8d7da', color: status.type === 'success' ? '#155724' : '#721c24' }}>
+          {status.msg}
         </div>
       )}
 
-      <h3>Historial</h3>
+      <hr />
+      
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h3>Resumen de:</h3>
+        <input 
+          type="month" 
+          value={monthFilter} 
+          onChange={e => setMonthFilter(e.target.value)} 
+          style={{ padding: '5px', borderRadius: '4px', border: '1px solid #007bff' }}
+        />
+      </div>
+
+      {Object.keys(expensesByCategory).length > 0 ? (
+        <div style={{ marginBottom: '30px' }}>
+          <Pie data={chartData} />
+          
+          <div style={{ marginTop: '20px' }}>
+            <h4>Desglose por categoría:</h4>
+            {Object.entries(expensesByCategory).map(([category, total]) => (
+              <div key={category} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px dashed #ccc' }}>
+                <span>
+                  <span style={{ color: categoryColors[category as keyof typeof categoryColors], marginRight: '10px' }}>●</span>
+                  {category}
+                </span>
+                <span style={{ fontWeight: 'bold' }}>${total.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p style={{ textAlign: 'center', color: '#666' }}>No hay gastos en este mes.</p>
+      )}
+
+      <hr />
+
+      <h3>Historial del Mes</h3>
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {transactions.map(t => (
-          <li key={t.id} style={{ borderBottom: '1px solid #ddd', padding: '10px 0', display: 'flex', justifyContent: 'space-between' }}>
+        {filteredTransactions.map(t => (
+          <li key={t._id || t.id} style={{ borderBottom: '1px solid #ddd', padding: '10px 0', display: 'flex', justifyContent: 'space-between' }}>
             <div>
-              <span>{t.description} <small style={{ color: '#666' }}>({t.category})</small></span>
+              <div style={{ fontWeight: 'bold' }}>{t.description}</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                {t.category} • {new Date(t.date).toLocaleDateString()}
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ color: t.type === 'gasto' ? 'red' : 'green', fontWeight: 'bold' }}>
                 {t.type === 'gasto' ? '-' : '+'}${t.amount}
               </span>
-              <button onClick={() => handleDelete(t.id!)} style={{ background: '#ff4d4d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', padding: '5px' }}>X</button>
+              <button onClick={() => handleDelete((t._id || t.id)!)} style={{ background: '#ff4d4d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', padding: '5px' }}>X</button>
             </div>
           </li>
         ))}
