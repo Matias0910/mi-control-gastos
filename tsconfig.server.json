@@ -8,7 +8,7 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "strict": false,
+    "strict": true, // Considera cambiar a 'true' para mayor seguridad de tipos
     "types": ["node"]
   },
   "include": ["server.ts", "Transaction.ts", "schemas.ts"]
