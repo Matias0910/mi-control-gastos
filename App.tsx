@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction, Category } from './schemas';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Pie } from 'react-chartjs-2';
+
+// Registrar componentes de Chart.js
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 // En producción (Render), usaremos la URL de tu backend desplegado
 const API_BASE_URL = import.meta.env.DEV 
@@ -46,12 +51,31 @@ export default function App() {
 
   const totalBalance = transactions.reduce((acc, t) => t.type === 'ingreso' ? acc + t.amount : acc - t.amount, 0);
 
+  // Preparar datos para el gráfico (solo gastos)
+  const expensesByCategory = transactions
+    .filter(t => t.type === 'gasto')
+    .reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + t.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+  const chartData = {
+    labels: Object.keys(expensesByCategory),
+    datasets: [
+      {
+        data: Object.values(expensesByCategory),
+        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+        borderWidth: 1,
+      },
+    ],
+  };
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '500px', margin: 'auto' }}>
       <h1>💰 Mi Control de Gastos</h1>
       
       <div style={{ background: '#f4f4f4', padding: '15px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
-        <h2>Saldo Actual: <span style={{ color: totalBalance >= 0 ? 'green' : 'red' }}>${totalBalance.toFixed(2)}</span></h2>
+        <h2 style={{ margin: 0 }}>Saldo: <span style={{ color: totalBalance >= 0 ? 'green' : 'red' }}>${totalBalance.toFixed(2)}</span></h2>
       </div>
       
       <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -75,6 +99,13 @@ export default function App() {
       </form>
 
       <hr />
+
+      {transactions.filter(t => t.type === 'gasto').length > 0 && (
+        <div style={{ marginBottom: '30px' }}>
+          <h3 style={{ textAlign: 'center' }}>Gastos por Categoría</h3>
+          <Pie data={chartData} />
+        </div>
+      )}
 
       <h3>Historial</h3>
       <ul style={{ listStyle: 'none', padding: 0 }}>
