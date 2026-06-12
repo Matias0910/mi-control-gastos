@@ -4,7 +4,7 @@ const transactionSchema = new mongoose.Schema({
     description: { type: String, required: true },
     category: {
         type: String,
-        enum: ['Comida', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Otros'],
+        enum: ['Almacen', 'Carniceria', 'Hijos', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Otros'],
         required: true
     },
     date: { type: String, default: () => new Date().toISOString() },

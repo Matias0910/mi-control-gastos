@@ -23,9 +23,15 @@ export default function App() {
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/transactions`)
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error("Error en la respuesta del servidor");
+        return res.json();
+      })
       .then(setTransactions)
-      .catch(() => setStatus({ msg: "Error al conectar con el servidor", type: 'error' }));
+      .catch((err) => {
+        console.error("Fetch error:", err);
+        setStatus({ msg: "No se pudo conectar con el servidor (¿Está encendido?)", type: 'error' });
+      });
   }, []);
 
   useEffect(() => {
@@ -110,7 +116,9 @@ export default function App() {
   );
 
   const categoryColors: Record<string, string> = {
-    'Comida': '#FF6384',
+    'Almacen': '#FF6384',
+    'Carniceria': '#E74C3C',
+    'Hijos': '#9B59B6',
     'Transporte': '#36A2EB',
     'Vivienda': '#FFCE56',
     'Entretenimiento': '#4BC0C0',
@@ -169,7 +177,9 @@ export default function App() {
           onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} 
         />
         <select value={cat} onChange={e => setCat(e.target.value as Category)}>
-          <option value="Comida">Comida</option>
+          <option value="Almacen">Almacen</option>
+          <option value="Carniceria">Carniceria</option>
+          <option value="Hijos">Hijos</option>
           <option value="Transporte">Transporte</option>
           <option value="Vivienda">Vivienda</option>
           <option value="Entretenimiento">Entretenimiento</option>
@@ -225,8 +235,8 @@ export default function App() {
 
       <h3>Historial del Mes</h3>
       <ul style={{ listStyle: 'none', padding: 0 }}>
-        {filteredTransactions.map(t => (
-          <li key={t._id || t.id} style={{ borderBottom: '1px solid #ddd', padding: '10px 0', display: 'flex', justifyContent: 'space-between' }}>
+        {filteredTransactions.map((t) => (
+          <li key={t._id || (t as any).id} style={{ backgroundColor: '#f9f9f9', marginBottom: '8px', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
             <div>
               <div style={{ fontWeight: 'bold' }}>{t.description}</div>
               <div style={{ fontSize: '12px', color: '#666' }}>
@@ -237,7 +247,7 @@ export default function App() {
               <span style={{ color: t.type === 'gasto' ? 'red' : 'green', fontWeight: 'bold' }}>
                 {t.type === 'gasto' ? '-' : '+'}${t.amount}
               </span>
-              <button onClick={() => handleDelete((t._id || t.id)!)} style={{ background: '#ff4d4d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', padding: '5px' }}>X</button>
+              <button onClick={() => handleDelete((t._id || (t as any).id)!)} style={{ background: '#ff4d4d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', padding: '5px' }}>X</button>
             </div>
           </li>
         ))}

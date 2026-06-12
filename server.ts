@@ -37,8 +37,9 @@ app.post('/api/transactions', async (req, res) => {
 
     console.log(`✅ Registro guardado: ${newTransaction.description} - $${newTransaction.amount}`);
     res.status(201).json(newTransaction);
-  } catch (error) {
-    res.status(400).json({ error: "Datos inválidos" });
+  } catch (error: any) {
+    console.error("❌ Error de validación en POST /api/transactions:", error);
+    res.status(400).json({ error: "Datos inválidos", details: error.message });
   }
 });
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const CategoryEnum = z.enum(['Comida', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Otros']);
+export const CategoryEnum = z.enum(['Almacen', 'Carniceria', 'Hijos', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Otros']);
 export const TransactionSchema = z.object({
     id: z.string().uuid().optional(),
     amount: z.number().positive({ message: "El monto debe ser mayor a 0" }),
