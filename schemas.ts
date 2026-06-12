@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const CategoryEnum = z.enum(['Comida', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Otros']);
+export const CategoryEnum = z.enum(['Comida', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Otros']);
 
 export const TransactionSchema = z.object({
   id: z.string().uuid().optional(),

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: mi-control-gastos
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGO_URI
+        sync: false # Aquí deberás pegar tu URL de MongoDB Atlas en el panel de Render
+      - key: PORT
+        value: 3001
+    publishPath: dist

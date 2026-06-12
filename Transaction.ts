@@ -5,7 +5,7 @@ const transactionSchema = new mongoose.Schema({
   description: { type: String, required: true },
   category: { 
     type: String, 
-    enum: ['Comida', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Otros'],
+    enum: ['Comida', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Otros'],
     required: true 
   },
   date: { type: String, default: () => new Date().toISOString() },
@@ -13,7 +13,7 @@ const transactionSchema = new mongoose.Schema({
 }, {
   timestamps: true,
   toJSON: { 
-    transform: (_doc, ret: any) => { 
+    transform: (_doc: any, ret: any) => { 
       ret.id = ret._id; 
       delete ret._id; 
       delete ret.__v; 
