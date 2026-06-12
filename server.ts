@@ -2,8 +2,13 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { TransactionSchema } from './schemas'; // Asumiendo que schemas.ts está en la misma raíz
 import { TransactionModel } from './Transaction'; // Asumiendo que Transaction.ts está en la misma raíz
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -45,6 +50,14 @@ app.delete('/api/transactions/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: "Error al eliminar" });
   }
+});
+
+// Servir archivos estáticos del Frontend (React)
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Ruta "catch-all" para que React Handle las rutas del navegador
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 const PORT = process.env.PORT || 3001;

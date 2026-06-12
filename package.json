@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:server && vite build",
-    "build:server": "tsc server.ts --outDir dist --module esnext --target esnext --moduleResolution node --allowSyntheticDefaultImports --skipLibCheck",
-    "start": "node dist/server.js",
+    "build:server": "tsc server.ts --outDir dist-server --module esnext --target esnext --moduleResolution node --allowSyntheticDefaultImports --skipLibCheck --ignoreConfig",
+    "start": "node dist-server/server.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
