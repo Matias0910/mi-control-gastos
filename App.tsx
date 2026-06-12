@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Transaction, Category } from './schemas';
 
 // En producción (Render), usaremos la URL de tu backend desplegado
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://mi-control-gastos-backend.onrender.com' // Reemplaza con la URL real que te de Render
-  : 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:3001' 
+  : ''; // En producción dejamos vacío para usar la misma URL de la página
 
 export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
