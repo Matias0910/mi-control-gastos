@@ -3,7 +3,7 @@ import { Transaction, Category } from './schemas';
 
 // En producción (Render), usaremos la URL de tu backend desplegado
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://tu-app-en-render.onrender.com' 
+  ? 'https://mi-control-gastos-backend.onrender.com' // Reemplaza con la URL real que te de Render
   : 'http://localhost:3001';
 
 export default function App() {

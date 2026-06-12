@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { TransactionSchema } from './schemas';
-import { TransactionModel } from './models/Transaction';
+import { TransactionSchema } from './schemas'; // Asumiendo que schemas.ts está en la misma raíz
+import { TransactionModel } from './Transaction'; // Asumiendo que Transaction.ts está en la misma raíz
 
 dotenv.config();
 
