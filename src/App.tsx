@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Transaction, Category } from '../schemas';
+import { Transaction, Category, CATEGORIES } from '../schemas';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 
@@ -151,6 +151,8 @@ export default function App() {
     'Entretenimiento': '#4BC0C0',
     'Salud': '#9966FF',
     'Kiosco': '#FF9F40',
+    'Indumentaria': '#F06292',
+    'Bancos': '#1ABC9C',
     'Otros': '#C9CBCF'
   };
 
@@ -209,15 +211,9 @@ export default function App() {
           onChange={e => setAmount(e.target.value === '' ? '' : Number(e.target.value))} 
         />
         <select value={cat} onChange={e => setCat(e.target.value as Category)}>
-          <option value="Almacen">Almacen</option>
-          <option value="Carniceria">Carniceria</option>
-          <option value="Hijos">Hijos</option>
-          <option value="Transporte">Transporte</option>
-          <option value="Vivienda">Vivienda</option>
-          <option value="Entretenimiento">Entretenimiento</option>
-          <option value="Salud">Salud</option>
-          <option value="Kiosco">Kiosco</option>
-          <option value="Otros">Otros</option>
+          {CATEGORIES.map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
         </select>
         {type === 'gasto' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' }}>

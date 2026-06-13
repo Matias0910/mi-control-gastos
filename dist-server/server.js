@@ -32,7 +32,18 @@ app.post('/api/transactions', async (req, res) => {
         res.status(201).json(newTransaction);
     }
     catch (error) {
-        res.status(400).json({ error: "Datos inválidos" });
+        console.error("❌ Error de validación en POST /api/transactions:", error);
+        res.status(400).json({ error: "Datos inválidos", details: error.message });
+    }
+});
+// Marcar como pagado (Saldar deuda)
+app.patch('/api/transactions/:id/pay', async (req, res) => {
+    try {
+        const updated = await TransactionModel.findByIdAndUpdate(req.params.id, { isPending: false }, { new: true });
+        res.json(updated);
+    }
+    catch (error) {
+        res.status(500).json({ error: "Error al actualizar" });
     }
 });
 // Eliminar una transacción

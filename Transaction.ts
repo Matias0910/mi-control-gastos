@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
+import { CATEGORIES } from './schemas.js';
 
 const transactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   description: { type: String, required: true },
   category: { 
     type: String, 
-    enum: ['Almacen', 'Carniceria', 'Hijos', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Otros'],
+    enum: CATEGORIES,
     required: true 
   },
   date: { type: String, default: () => new Date().toISOString() },

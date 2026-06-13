@@ -4,11 +4,12 @@ const transactionSchema = new mongoose.Schema({
     description: { type: String, required: true },
     category: {
         type: String,
-        enum: ['Almacen', 'Carniceria', 'Hijos', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Otros'],
+        enum: ['Almacen', 'Carniceria', 'Hijos', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Indumentaria', 'Bancos', 'Otros'],
         required: true
     },
     date: { type: String, default: () => new Date().toISOString() },
-    type: { type: String, enum: ['ingreso', 'gasto'], required: true }
+    type: { type: String, enum: ['ingreso', 'gasto'], required: true },
+    isPending: { type: Boolean, default: false }
 }, {
     timestamps: true,
     toJSON: {
