@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const CATEGORIES = ['Almacen', 'Carniceria', 'Hijos', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Indumentaria', 'Bancos', 'Otros'] as const;
+export const CATEGORIES = ['Almacen', 'Carniceria', 'Hijos', 'Transporte', 'Vivienda', 'Entretenimiento', 'Salud', 'Kiosco', 'Indumentaria', 'Bancos', 'Regaleria', 'Otros'] as const;
 
 export const CategoryEnum = z.enum(CATEGORIES);
 

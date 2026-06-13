@@ -134,7 +134,7 @@ export default function App() {
 
   const expensesByCategory = useMemo(() => 
     filteredTransactions
-      .filter(t => t.type === 'gasto' && !t.isPending)
+      .filter(t => t.type === 'gasto')
       .reduce((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount;
         return acc;
@@ -153,6 +153,7 @@ export default function App() {
     'Kiosco': '#FF9F40',
     'Indumentaria': '#F06292',
     'Bancos': '#1ABC9C',
+    'Regaleria': '#F1C40F',
     'Otros': '#C9CBCF'
   };
 
